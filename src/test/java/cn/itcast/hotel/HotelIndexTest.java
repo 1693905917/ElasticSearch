@@ -91,8 +91,10 @@ public class HotelIndexTest {
             request.add(new IndexRequest("hotel").id(hotelDoc.getId().toString()).source(JSON.toJSONString(hotelDoc),XContentType.JSON));
         }
         client.bulk(request,RequestOptions.DEFAULT);
-
     }
+
+
+
 
 //    @Test
 //    void testInit() throws IOException {
