@@ -21,6 +21,10 @@ import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.aggregations.Aggregation;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortBuilder;
@@ -32,6 +36,8 @@ import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -58,7 +64,6 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
             //距离排序
             request.source().sort(SortBuilders.geoDistanceSort("location",new GeoPoint(location)).order(SortOrder.ASC).unit(DistanceUnit.KILOMETERS));
         }
-
         try {
             SearchResponse response=client.search(request,RequestOptions.DEFAULT);
             return  handleResponse(response);
@@ -67,6 +72,59 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
         }
 
     }
+
+    //RequestParams params
+    @Override
+    public Map<String, List<String>> filters(RequestParams params) {
+        SearchRequest request = new SearchRequest("hotel");
+        buildBasicQuery(params,request);
+        request.source().size(0);
+        buildAggregation(request);
+        SearchResponse response=null;
+        try {
+            response = client.search(request, RequestOptions.DEFAULT);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        HashMap<String, List<String>> result = new HashMap<>();
+        Aggregations aggregations = response.getAggregations();
+        List<String> brandList = getAggByName(aggregations, "brandAgg");
+        result.put("品牌",brandList);
+        List<String> cityList = getAggByName(aggregations, "cityAgg");
+        result.put("城市",cityList);
+        List<String> starList = getAggByName(aggregations, "starAgg");
+        result.put("星级",starList);
+        return result;
+    }
+
+
+
+    private List<String> getAggByName(Aggregations aggregations,String aggName){
+        Terms brandTerms = aggregations.get(aggName);
+        List<? extends Terms.Bucket> buckets = brandTerms.getBuckets();
+        List<String> list = new ArrayList<>();
+        for (Terms.Bucket bucket : buckets) {
+            String key = bucket.getKeyAsString();
+            list.add(key);
+        }
+        return list;
+    }
+
+    private void buildAggregation(SearchRequest request){
+        //品牌
+        request.source().aggregation(
+                AggregationBuilders.terms("brandAgg").field("brand").size(20)
+        );
+        //城市
+        request.source().aggregation(
+                AggregationBuilders.terms("cityAgg").field("city").size(20)
+        );
+        //星级
+        request.source().aggregation(
+                AggregationBuilders.terms("starAgg").field("starName").size(20)
+        );
+    }
+
 
     private void buildBasicQuery(RequestParams params, SearchRequest request) {
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
@@ -123,4 +181,9 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
         }
         return new PageResult(total,hotels);
     }
+
+
+
+
+
 }

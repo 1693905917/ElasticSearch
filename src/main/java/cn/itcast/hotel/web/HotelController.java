@@ -4,10 +4,10 @@ import cn.itcast.hotel.pojo.PageResult;
 import cn.itcast.hotel.pojo.RequestParams;
 import cn.itcast.hotel.service.IHotelService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * @BelongsProject: hotel-demo
@@ -35,5 +35,19 @@ public class HotelController {
     public PageResult search(@RequestBody RequestParams params){
         return hotelService.search(params);
     }
+
+    /*
+     * @description:酒店搜索
+     * @author:  HZP
+     * @date: 2023/11/28 22:07
+     * @param:
+     * @return:
+     **/
+    @PostMapping
+    public Map<String, List<String>> getFilters(@RequestBody RequestParams params){
+        return hotelService.filters(params);
+    }
+
+
 
 }
