@@ -54,7 +54,6 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
     @Override
     public PageResult search(RequestParams params) {
         SearchRequest request = new SearchRequest("hotel");
-
         buildBasicQuery(params, request);
         int page=params.getPage();
         int size=params.getSize();
@@ -75,54 +74,61 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
 
     //RequestParams params
     @Override
-    public Map<String, List<String>> filters(RequestParams params) {
-        SearchRequest request = new SearchRequest("hotel");
-        buildBasicQuery(params,request);
-        request.source().size(0);
-        buildAggregation(request);
-        SearchResponse response=null;
+    public Map<String, List<String>> getFilters(RequestParams params) {
         try {
-            response = client.search(request, RequestOptions.DEFAULT);
+            // 1.准备请求
+            SearchRequest request = new SearchRequest("hotel");
+            // 2.请求参数
+            // 2.1.query
+            buildBasicQuery(params, request);
+            // 2.2.size
+            request.source().size(0);
+            // 2.3.聚合
+            buildAggregations(request);
+            // 3.发出请求
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            // 4.解析结果
+            Aggregations aggregations = response.getAggregations();
+            Map<String, List<String>> filters = new HashMap<>(3);
+            // 4.1.解析品牌
+            List<String> brandList = getAggregationByName(aggregations, "brandAgg");
+            filters.put("brand", brandList);
+            // 4.1.解析品牌
+            List<String> cityList = getAggregationByName(aggregations, "cityAgg");
+            filters.put("city", cityList);
+            // 4.1.解析品牌
+            List<String> starList = getAggregationByName(aggregations, "starAgg");
+            filters.put("starName", starList);
+
+            return filters;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        HashMap<String, List<String>> result = new HashMap<>();
-        Aggregations aggregations = response.getAggregations();
-        List<String> brandList = getAggByName(aggregations, "brandAgg");
-        result.put("品牌",brandList);
-        List<String> cityList = getAggByName(aggregations, "cityAgg");
-        result.put("城市",cityList);
-        List<String> starList = getAggByName(aggregations, "starAgg");
-        result.put("星级",starList);
-        return result;
     }
 
 
 
-    private List<String> getAggByName(Aggregations aggregations,String aggName){
-        Terms brandTerms = aggregations.get(aggName);
-        List<? extends Terms.Bucket> buckets = brandTerms.getBuckets();
-        List<String> list = new ArrayList<>();
+    private List<String> getAggregationByName(Aggregations aggregations, String aggName) {
+        // 4.1.根据聚合名称，获取聚合结果
+        Terms terms = aggregations.get(aggName);
+        // 4.2.获取buckets
+        List<? extends Terms.Bucket> buckets = terms.getBuckets();
+        // 4.3.遍历
+        List<String> list = new ArrayList<>(buckets.size());
         for (Terms.Bucket bucket : buckets) {
-            String key = bucket.getKeyAsString();
-            list.add(key);
+            String brandName = bucket.getKeyAsString();
+            list.add(brandName);
         }
         return list;
     }
 
-    private void buildAggregation(SearchRequest request){
-        //品牌
+    private void buildAggregations(SearchRequest request) {
         request.source().aggregation(
-                AggregationBuilders.terms("brandAgg").field("brand").size(20)
-        );
-        //城市
+                AggregationBuilders.terms("brandAgg").field("brand").size(20));
         request.source().aggregation(
-                AggregationBuilders.terms("cityAgg").field("city").size(20)
-        );
-        //星级
+                AggregationBuilders.terms("cityAgg").field("city").size(20));
         request.source().aggregation(
-                AggregationBuilders.terms("starAgg").field("starName").size(20)
-        );
+                AggregationBuilders.terms("starAgg").field("starName").size(20));
     }
 
 
