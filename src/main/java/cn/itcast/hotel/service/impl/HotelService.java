@@ -30,6 +30,10 @@ import org.elasticsearch.search.fetch.subphase.highlight.HighlightField;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.SuggestBuilders;
+import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -106,6 +110,40 @@ public class HotelService extends ServiceImpl<HotelMapper, Hotel> implements IHo
         }
     }
 
+    @Override
+    public List<String> getSuggestions(String prefix) {
+        try {
+            // 1.准备请求
+            SearchRequest request = new SearchRequest("hotel");
+            // 2.请求参数
+            request.source().suggest(new SuggestBuilder()
+                    .addSuggestion(
+                            "hotelSuggest",
+                            SuggestBuilders
+                                    .completionSuggestion("suggestion")
+                                    .size(10)
+                                    .skipDuplicates(true)
+                                    .prefix(prefix)
+                    ));
+            // 3.发出请求
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            // 4.解析
+            Suggest suggest = response.getSuggest();
+            // 4.1.根据名称获取结果
+            CompletionSuggestion suggestion = suggest.getSuggestion("hotelSuggest");
+            // 4.2.获取options
+            List<String> list = new ArrayList<>();
+            for (CompletionSuggestion.Entry.Option option : suggestion.getOptions()) {
+                // 4.3.获取补全的结果
+                String str = option.getText().toString();
+                // 4.4.放入集合
+                list.add(str);
+            }
+            return list;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 
     private List<String> getAggregationByName(Aggregations aggregations, String aggName) {

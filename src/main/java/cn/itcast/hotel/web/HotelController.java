@@ -47,7 +47,16 @@ public class HotelController {
     public Map<String, List<String>> getFilters(@RequestBody RequestParams params) {
         return hotelService.getFilters(params);
     }
-
-
+    /*
+     * @description:实现自动补全
+     * @author:  HZP
+     * @date: 2023/11/30 16:35
+     * @param:
+     * @return:
+     **/
+    @GetMapping("/suggestion")
+    public List<String> getSuggestions(@RequestParam("key") String prefix){
+        return hotelService.getSuggestions(prefix);
+    }
 
 }

@@ -21,6 +21,4 @@ public class HotelDemoApplication {
     public RestHighLevelClient restHighLevelClient(){
         return new RestHighLevelClient(RestClient.builder(HttpHost.create("http://192.168.249.128:9200")));
     }
-
-
 }
