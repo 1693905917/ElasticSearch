@@ -85,7 +85,6 @@ public class HotelIndexTest {
     void testBulk() throws IOException {
         List<Hotel> hotels = hotelService.list();
         BulkRequest request = new BulkRequest();
-
         for (Hotel hotel : hotels) {
             HotelDoc hotelDoc = new HotelDoc(hotel);
             request.add(new IndexRequest("hotel").id(hotelDoc.getId().toString()).source(JSON.toJSONString(hotelDoc),XContentType.JSON));
